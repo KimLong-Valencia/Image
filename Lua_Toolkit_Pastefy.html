@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lua Toolkit • Pastefy</title>
+<style>
+:root{color-scheme:dark;--bg:#070a0d;--panel:#10161c;--line:#26343d;--text:#f4fbff;--muted:#94a6b2;--mint:#5ee6c1;--blue:#54b9ff;--danger:#ff7c86}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#10222a 0,#070a0d 55%);font:15px/1.5 system-ui,Segoe UI,Arial;color:var(--text);padding:18px}
+main{max-width:980px;margin:auto}.head{padding:18px 0 10px}.eyebrow{color:var(--mint);font-weight:800;letter-spacing:.15em;font-size:12px}h1{margin:4px 0;font-size:clamp(25px,5vw,38px)}.sub{color:var(--muted);margin:0 0 18px}
+.panel{background:linear-gradient(160deg,#121b22,#0d1217);border:1px solid var(--line);border-radius:17px;padding:16px;margin:13px 0;box-shadow:0 12px 35px #0004}
+h2{font-size:16px;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
+label{display:block;color:#d7e4eb;font-size:13px;margin:0 0 6px}input,select,textarea{width:100%;background:#080d11;color:var(--text);border:1px solid #2b3b45;border-radius:10px;padding:11px;font:inherit;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--mint)}textarea{min-height:180px;resize:vertical;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}.smallarea{min-height:76px}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:10px;padding:11px 14px;background:var(--mint);color:#06110f;font-weight:800;cursor:pointer}.btn.secondary{background:#1c2a33;color:#e8f6fb;border:1px solid #30434f}.btn:disabled{opacity:.55;cursor:wait}.note{color:var(--muted);font-size:12px}.warn{border:1px solid #62434a;background:#241418;color:#ffd9dd;padding:11px;border-radius:10px;font-size:13px}.status{min-height:24px;color:var(--mint);white-space:pre-wrap}.check{display:flex;gap:9px;align-items:flex-start}.check input{width:auto;margin-top:5px}.out{overflow-wrap:anywhere;color:#aee9ff}.hide{display:none}@media(max-width:650px){body{padding:12px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.panel{padding:13px}}
+</style>
+</head>
+<body>
+<main>
+  <header class="head">
+    <div class="eyebrow">KIMLONG • DEVELOPER TOOL</div>
+    <h1>Lua Toolkit <span style="color:var(--mint)">/ Pastefy</span></h1>
+    <p class="sub">Chọn kiểu xử lý Lua, tải file, tạo Paste và lấy raw URL.</p>
+  </header>
+
+  <div class="warn"><b>Bảo mật API:</b> Không nhúng API key vào file HTML công khai. Hãy nhập key trong phiên sử dụng và thu hồi/tạo key mới nếu key cũ đã bị chia sẻ. Mọi người có thể xem key khi bạn hard-code nó trong HTML.</div>
+
+  <section class="panel">
+    <h2>01 / Pastefy API</h2>
+    <div class="grid">
+      <div><label for="apiKey">API token Pastefy</label><input id="apiKey" type="password" autocomplete="off" placeholder="Dán API token tại đây"></div>
+      <div><label for="pasteTitle">Tên paste</label><input id="pasteTitle" value="script.lua" placeholder="script.lua"></div>
+      <div><label for="visibility">Chế độ hiển thị</label><select id="visibility"><option value="UNLISTED">UNLISTED — ai có link mới xem</option><option value="PUBLIC">PUBLIC — công khai</option><option value="PRIVATE">PRIVATE — riêng tư (nếu API cho phép)</option></select></div>
+      <div><label for="file">Chọn file Lua / TXT</label><input id="file" type="file" accept=".lua,.txt,.luau,text/plain"></div>
+    </div>
+    <p class="note">Token chỉ nằm trong ô nhập của trang đang mở; không lưu vào localStorage. Kết nối trực tiếp từ trình duyệt có thể bị CORS hoặc chính sách API chặn.</p>
+  </section>
+
+  <section class="panel">
+    <h2>02 / Nội dung Lua</h2>
+    <label for="source">Code đầu vào</label>
+    <textarea id="source" spellcheck="false" placeholder="Dán code Lua vào đây hoặc chọn file ở phần trên..."></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn secondary" id="loadFile">Đọc file đã chọn</button>
+      <button class="btn secondary" id="clear">Xóa nội dung</button>
+      <span class="note" id="fileInfo">Chưa có file được đọc.</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>03 / Chọn xử lý obfuscation</h2>
+    <div class="grid">
+      <div><label for="mode">Chế độ</label><select id="mode">
+        <option value="none">Không xử lý — giữ nguyên code</option>
+        <option value="comments">Bỏ comment dòng đơn giản (cần kiểm tra lại)</option>
+        <option value="compact">Thu gọn khoảng trắng ngoài chuỗi (bảo thủ)</option>
+        <option value="both">Bỏ comment đơn giản + thu gọn</option>
+      </select></div>
+      <div><label for="linkMode">Hiển thị link</label><select id="linkMode">
+        <option value="raw">Raw URL</option>
+        <option value="encoded">Raw URL + Base64 (chỉ mã hóa hiển thị)</option>
+      </select></div>
+      <div><label for="accessMode">Quyền xem paste</label><select id="accessMode">
+        <option value="PRIVATE">PRIVATE — chỉ tài khoản được cấp quyền (nếu API hỗ trợ)</option>
+        <option value="UNLISTED">UNLISTED — ai có link đều có thể xem</option>
+        <option value="PUBLIC">PUBLIC — công khai</option>
+      </select></div>
+      <div class="full check"><input id="confirm" type="checkbox"><label for="confirm">Tôi đã kiểm tra code và đồng ý tải nội dung lên Pastefy. Không tải lên token, mật khẩu hoặc dữ liệu riêng tư.</label></div>
+    </div>
+    <p class="note">Các chế độ này chỉ là tiền xử lý nhẹ, không phải decompiler/obfuscator chuyên dụng và không đảm bảo tương đương với obfuscator nâng cao. Hãy thử trên bản sao và kiểm tra code trước khi dùng.</p>
+    <div class="row"><button class="btn" id="process">Áp dụng lựa chọn</button><button class="btn secondary" id="copyProcessed">Sao chép kết quả</button><button class="btn secondary" id="downloadProcessed">Tải kết quả .lua</button></div>
+    <label for="processed" style="margin-top:12px">Kết quả đã xử lý</label>
+    <textarea id="processed" spellcheck="false" placeholder="Kết quả sẽ hiện ở đây..."></textarea>
+  </section>
+
+  <section class="panel">
+    <h2>04 / Upload lên Pastefy</h2>
+    <div class="row"><button class="btn" id="upload">Upload code lên Pastefy</button><span class="status" id="status" role="status"></span></div>
+    <div style="margin-top:12px"><label for="pasteUrl">Paste URL</label><input id="pasteUrl" readonly placeholder="Sau khi upload sẽ hiện ở đây"></div>
+    <div style="margin-top:12px"><label for="rawUrl">Raw URL</label><input id="rawUrl" readonly placeholder="https://pastefy.app/ID/raw"></div>
+    <div class="row" style="margin-top:10px"><button class="btn secondary" id="copyRaw">Sao chép raw URL</button><button class="btn secondary" id="openRaw">Mở raw</button></div>
+    <div id="loaderBox" style="margin-top:14px">
+      <label for="loader">Mẫu loader (chỉ sao chép; hãy dùng trong môi trường bạn sở hữu/được phép kiểm thử)</label>
+      <textarea class="smallarea" id="loader" readonly placeholder="Loader sẽ được tạo sau khi upload thành công"></textarea>
+      <button class="btn secondary" id="copyLoader" style="margin-top:8px">Sao chép loader</button>
+    </div>
+    <div style="margin-top:12px"><label for="encodedUrl">Base64 của raw URL (tùy chọn)</label><input id="encodedUrl" readonly placeholder="Chỉ mã hóa chuỗi URL, không làm link an toàn hơn"></div>
+  </section>
+  <p class="note">Lưu ý quyền riêng tư: PRIVATE không đồng nghĩa “chỉ Delta và chủ tài khoản mới xem”. Delta là môi trường chạy script, không phải hệ thống xác thực người xem. Nếu cần giới hạn thật sự, phải xác minh API Pastefy hiện hỗ trợ quyền riêng tư nào; không dùng UNLISTED nếu không muốn bất kỳ ai có link xem được. API v2: POST https://pastefy.app/api/v2/paste. Nếu trình duyệt báo CORS/401, hãy dùng backend riêng để giữ token an toàn.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let selectedFile = null;
+$('file').addEventListener('change', () => { selectedFile = $('file').files?.[0] || null; $('fileInfo').textContent = selectedFile ? `${selectedFile.name} • ${selectedFile.size.toLocaleString()} bytes` : 'Chưa có file được chọn.'; if(selectedFile && !$('pasteTitle').value.trim()) $('pasteTitle').value = selectedFile.name; });
+$('loadFile').addEventListener('click', async () => {
+  if(!selectedFile){$('status').textContent='Chọn file trước.';return;}
+  try{$('source').value=await selectedFile.text();$('fileInfo').textContent=`Đã đọc: ${selectedFile.name}`;$('status').textContent='Đã nạp toàn bộ nội dung file vào ô code.';}
+  catch(e){$('status').textContent='Không đọc được file: '+e.message;}
+});
+$('clear').addEventListener('click',()=>{$('source').value='';$('processed').value='';$('status').textContent='';});
+function transformLua(src, mode){
+  // Intentionally conservative: these are convenience transforms, not a full Lua lexer.
+  if(mode==='none') return src;
+  let out='', i=0, quote=null, longLevel=null;
+  while(i<src.length){
+    const c=src[i], n=src[i+1];
+    if(quote){
+      out+=c;
+      if(c==='\\' && i+1<src.length){out+=src[++i];}
+      else if(c===quote) quote=null;
+      i++; continue;
+    }
+    if(c==='"'||c==="'"){quote=c;out+=c;i++;continue;}
+    if(c==='['){
+      const m=src.slice(i).match(/^\[(=*)\[/);
+      if(m){longLevel=m[1];const token=m[0];out+=token;i+=token.length;continue;}
+    }
+    if(longLevel!==null){
+      const end=']'+longLevel+']';
+      if(src.startsWith(end,i)){out+=end;i+=end.length;longLevel=null;}else{out+=c;i++;}
+      continue;
+    }
+    if((mode==='comments'||mode==='both') && c==='-' && n==='-'){
+      const lm=src.slice(i).match(/^--\[(=*)\[/);
+      if(lm){
+        const close=']'+lm[1]+']', start=i+lm[0].length, end=src.indexOf(close,start);
+        if(end<0){out+=src.slice(i);break;}
+        i=end+close.length; continue;
+      }
+      const end=src.indexOf('\n',i);
+      if(end<0) break;
+      out+='\n';i=end+1;continue;
+    }
+    out+=c;i++;
+  }
+  if(mode==='compact'||mode==='both'){
+    // Only collapse repeated horizontal whitespace; preserves newlines and string content.
+    let result='', q=null, escaped=false;
+    for(let j=0;j<out.length;j++){
+      const c=out[j];
+      if(q){result+=c;if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c===q)q=null;continue;}
+      if(c==='"'||c==="'"){q=c;result+=c;continue;}
+      if(c===' '||c==='\t'){if(result && !/[ \t\n]$/.test(result))result+=' ';while(out[j+1]===' '||out[j+1]==='\t')j++;continue;}
+      result+=c;
+    }
+    out=result;
+  }
+  return out;
+}
+$('process').addEventListener('click',()=>{try{$('processed').value=transformLua($('source').value,$('mode').value);$('status').textContent='Đã xử lý. Hãy kiểm tra lại trước khi upload.';}catch(e){$('status').textContent='Lỗi xử lý: '+e.message;}});
+async function copyText(text){if(!text){$('status').textContent='Không có nội dung để sao chép.';return;}try{await navigator.clipboard.writeText(text);$('status').textContent='Đã sao chép.';}catch(e){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();$('status').textContent=ok?'Đã sao chép.':'Không thể sao chép tự động; hãy chọn và copy thủ công.';}}
+$('copyProcessed').addEventListener('click',()=>copyText($('processed').value));
+$('downloadProcessed').addEventListener('click',()=>{
+  const code=$('processed').value || $('source').value;
+  if(!code.trim()){$('status').textContent='Chưa có kết quả để tải.';return;}
+  const blob=new Blob([code],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const title=($('pasteTitle').value.trim()||'script.lua').replace(/[^a-zA-Z0-9._-]/g,'_');
+  a.href=url;a.download=title.toLowerCase().endsWith('.lua')?title:title+'.lua';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  $('status').textContent='Đã bắt đầu tải file Lua.';
+});
+$('copyRaw').addEventListener('click',()=>copyText($('rawUrl').value));
+$('copyLoader').addEventListener('click',()=>copyText($('loader').value));
+$('openRaw').addEventListener('click',()=>{const u=$('rawUrl').value;if(u)window.open(u,'_blank','noopener');});
+$('upload').addEventListener('click',async()=>{
+  const token=$('apiKey').value.trim(), code=$('processed').value || $('source').value;
+  if(!token){$('status').textContent='Nhập Pastefy API token trước.';return;}
+  if(!code.trim()){$('status').textContent='Chưa có code để upload.';return;}
+  if(!$('confirm').checked){$('status').textContent='Hãy xác nhận checkbox trước khi upload.';return;}
+  $('upload').disabled=true;$('status').textContent='Đang upload...';
+  try{
+    const response=await fetch('https://pastefy.app/api/v2/paste',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({type:'PASTE',title:$('pasteTitle').value.trim()||'script.lua',content:code,visibility:$('accessMode').value,encrypted:false})
+    });
+    const body=await response.text();let data;
+    try{data=JSON.parse(body)}catch{throw new Error('Phản hồi không phải JSON. Có thể API/CORS đã chặn yêu cầu: '+body.slice(0,180));}
+    if(!response.ok) throw new Error(`HTTP ${response.status}: ${data.message||data.error||body.slice(0,180)}`);
+    const p=data.paste||data.data||data;
+    if(!p.id && !p.raw_url) throw new Error('Upload có phản hồi nhưng không tìm thấy ID/raw_url: '+body.slice(0,220));
+    const base='https://pastefy.app/';
+    const pasteUrl=p.url|| (p.id?base+p.id:'');
+    let raw=p.raw_url|| (p.id?base+p.id+'/raw':'');
+    if(raw && raw.startsWith('/')) raw='https://pastefy.app'+raw;
+    $('pasteUrl').value=pasteUrl;
+    $('rawUrl').value=raw;
+    $('loader').value=raw ? `loadstring(game:HttpGet("${raw}"))()` : '';
+    try{$('encodedUrl').value=raw?btoa(unescape(encodeURIComponent(raw))):'';}catch{$('encodedUrl').value='';}
+    $('status').textContent='Upload thành công. Hãy mở raw URL để xác nhận nội dung.';
+  }catch(e){$('status').textContent='Upload thất bại: '+e.message+'\\nNếu báo CORS, hãy gọi API qua backend riêng; không đưa token vào HTML công khai.';}
+  finally{$('upload').disabled=false;}
+});
+</script>
+</body>
+</html>
